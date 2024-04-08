@@ -1,40 +1,40 @@
 <template>
-  <div class="pdp">
-    <div class="main-wrapper">
-      <div ref="productWrapper" class="product-wrapper">
-        <div ref="gallery" class="gallery-wrapper">
-          <div class="gallery">
-            <div class="gallery-image">
-              <p>IMAGE 1</p>
-            </div>
-            <div class="gallery-image">
-              <p>IMAGE 2</p>
-            </div>
-            <div class="gallery-image">
-              <p>IMAGE 3</p>
-            </div>
-            <div class="gallery-image">
-              <p>IMAGE 4</p>
-            </div>
-            <div class="gallery-image">
-              <p>IMAGE 5</p>
-            </div>
-            <div class="gallery-image">
-              <p>IMAGE 6</p>
-            </div>
+  <div ref="pdp" :class="['pdp', { scroll: isBottomsheetOpen }]">
+    <div ref="productWrapper" class="product-wrapper">
+      <div ref="gallery" class="gallery">
+        <div class="gallery-image">
+          <p>IMAGE 1</p>
+        </div>
+        <div class="gallery-image">
+          <p>IMAGE 2</p>
+        </div>
+        <div class="gallery-image">
+          <p>IMAGE 3</p>
+        </div>
+        <div class="gallery-image">
+          <p>IMAGE 4</p>
+        </div>
+        <div class="gallery-image">
+          <p>IMAGE 5</p>
+        </div>
+        <div class="gallery-image">
+          <p>IMAGE 6</p>
+        </div>
+      </div>
+      <div
+        ref="bottomsheet"
+        :class="['bottomsheet', { 'bottomsheet--open': isBottomsheetOpen }]"
+      >
+        <div class="drag-handle">
+          <div class="drag-handle-container">
+            <div
+              v-if="!isDesktop"
+              class="drag-handle-button"
+              @click.self="toggleBottomsheet"
+            />
           </div>
         </div>
-        <div class="bottomsheet-wrapper">
-          <div
-            ref="bottomsheet"
-            :class="['bottomsheet', { 'bottomsheet--open': isBottomsheetOpen }]"
-          >
-            <button v-if="!isDesktop" type="button" @click="toggleBottomsheet">
-              open / close
-            </button>
-            <h1>BOTTOMSHEET</h1>
-          </div>
-        </div>
+        <h1>BOTTOMSHEET</h1>
       </div>
     </div>
     <div class="others-wrapper">
@@ -44,130 +44,90 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch, toRefs } from "vue";
-import { useMediaQuery, useEventListener, useScroll } from "@vueuse/core";
+import { ref, toRefs, watch } from "vue";
+import { useMediaQuery, useScroll } from "@vueuse/core";
 
 const isDesktop = useMediaQuery("(min-width: 1024px)");
 
+const pdp = ref<HTMLElement>();
 const bottomsheet = ref<HTMLElement>();
 const gallery = ref<HTMLElement>();
 const isBottomsheetOpen = ref(false);
-const bsTop = ref();
-const lastImage = ref<Element>();
-const lastImageBottom = ref();
 const productWrapper = ref<HTMLElement>();
 
-const { isScrolling, arrivedState, directions } = useScroll(productWrapper);
-const { top: reachedTop } = toRefs(arrivedState);
-const { top: isScrollingUp } = toRefs(directions);
+const { arrivedState: galleryArrivedState } = useScroll(gallery);
+const { bottom: hasGalleryReachedBottom } = toRefs(galleryArrivedState);
+
+const { arrivedState: pdpArrivedState } = useScroll(pdp);
+const { top: hasPdpReachedTop } = toRefs(pdpArrivedState);
+
+watch(hasGalleryReachedBottom, () => {
+  if (hasGalleryReachedBottom.value) {
+    toggleBottomsheet();
+  }
+});
+
+watch(hasPdpReachedTop, () => {
+  if (hasPdpReachedTop.value) {
+    toggleBottomsheet();
+  }
+});
 
 function toggleBottomsheet() {
   isBottomsheetOpen.value = !isBottomsheetOpen.value;
   bottomsheet.value?.classList.toggle("bottomsheet--open");
 }
-
-watch(isBottomsheetOpen, () => {
-  if (bottomsheet.value) {
-    isBottomsheetOpen.value
-      ? bottomsheet.value.classList.add("bottomsheet--open")
-      : bottomsheet.value?.classList.remove("bottomsheet--open");
-  }
-});
-
-onMounted(() => {
-  useEventListener(gallery, "scroll", () => {
-    lastImage.value = gallery.value?.querySelectorAll(
-      ".gallery-image:last-child"
-    )[0];
-
-    lastImageBottom.value = lastImage.value?.getBoundingClientRect().bottom;
-
-    bsTop.value = bottomsheet.value?.getBoundingClientRect().top;
-
-    if (bsTop.value && lastImageBottom.value) {
-      isBottomsheetOpen.value = lastImageBottom.value < bsTop.value;
-    }
-  });
-
-  useEventListener(productWrapper, "scroll", () => {
-    if (isScrolling.value && isScrollingUp.value && isBottomsheetOpen.value) {
-      isBottomsheetOpen.value = reachedTop.value;
-    }
-  });
-});
 </script>
 
 <style lang="scss" scoped>
-.main-wrapper {
-  min-height: 100vh;
-  position: relative;
+.pdp {
+  max-height: 100vh;
+  overflow-y: hidden;
 
   @media only screen and (min-width: 1024px) {
+    max-height: none;
+    min-height: 100vh;
+    height: auto;
     overflow: visible;
   }
 }
 
 .product-wrapper {
-  display: flex;
-  flex-direction: column;
-  max-height: stretch;
-  height: var(--app-height, 100vh);
-  overflow: scroll;
+  max-height: 100vh;
+  overflow-y: hidden;
 
   @media only screen and (min-width: 1024px) {
-    flex-direction: row;
-    position: relative;
-    top: 0;
+    display: flex;
+    overflow: visible;
     max-height: none;
-    height: auto;
-    overflow: visible;
-  }
-}
-
-.gallery-wrapper {
-  min-height: 75vh;
-  overscroll-behavior: none;
-  overflow: scroll;
-  flex-grow: 1;
-
-  @media only screen and (min-width: 1024px) {
-    min-height: 100vh;
-    height: auto;
-    width: 50%;
-    overscroll-behavior: auto;
-    overflow: visible;
+    height: 100%;
+    width: 100%;
   }
 }
 
 .gallery {
-  background-color: blueviolet;
-  height: fit-content;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   align-items: center;
+  max-height: 80vh;
+  overflow: scroll;
+
+  @media only screen and (min-width: 1024px) {
+    max-height: none;
+    width: 50%;
+    overflow: visible;
+  }
 }
 
 .gallery-image {
+  background-color: blueviolet;
   width: 100%;
-  height: 85vh;
+  min-height: 100vh;
   border: 1px solid red;
   display: flex;
   justify-content: center;
   align-items: center;
-
-  @media only screen and (min-width: 1024px) {
-    height: 100vh;
-  }
-}
-
-.bottomsheet-wrapper {
-  position: relative;
-  background-color: chartreuse;
-  @media only screen and (min-width: 1024px) {
-    width: 50%;
-    background-color: transparent;
-  }
 }
 
 .bottomsheet {
@@ -183,6 +143,7 @@ onMounted(() => {
   transform: translateY(0);
 
   @media only screen and (min-width: 1024px) {
+    width: 50%;
     position: sticky;
     top: 0;
   }
@@ -192,6 +153,29 @@ onMounted(() => {
   }
 }
 
+.drag-handle {
+  height: 32px;
+  padding-block: 12px;
+  position: relative;
+}
+
+.drag-handle-container {
+  position: absolute;
+  width: 64px;
+  height: 32px;
+  transform: translateX(-50%);
+}
+
+.drag-handle-button {
+  margin-left: auto;
+  margin-right: auto;
+  height: 2px;
+  width: 50px;
+  border-radius: 0.125rem;
+  --tw-bg-opacity: 1;
+  background-color: rgb(0 0 0 / var(--tw-bg-opacity));
+}
+
 .others-wrapper {
   background-color: chocolate;
   min-height: 500px;
@@ -199,5 +183,9 @@ onMounted(() => {
   justify-content: center;
   align-items: flex-start;
   padding: 50px;
+}
+
+.scroll {
+  overflow-y: scroll;
 }
 </style>
