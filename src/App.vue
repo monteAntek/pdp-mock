@@ -62,13 +62,13 @@ const { arrivedState: pdpArrivedState } = useScroll(pdp);
 const { top: hasPdpReachedTop } = toRefs(pdpArrivedState);
 
 watch(hasGalleryReachedBottom, () => {
-  if (hasGalleryReachedBottom.value) {
+  if (hasGalleryReachedBottom.value && !isBottomsheetOpen.value) {
     toggleBottomsheet();
   }
 });
 
 watch(hasPdpReachedTop, () => {
-  if (hasPdpReachedTop.value) {
+  if (hasPdpReachedTop.value && isBottomsheetOpen.value) {
     toggleBottomsheet();
   }
 });
