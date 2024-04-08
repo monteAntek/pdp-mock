@@ -82,6 +82,7 @@ function toggleBottomsheet() {
 <style lang="scss" scoped>
 .pdp {
   max-height: 100vh;
+  max-height: 100dvh;
   overflow-y: hidden;
 
   @media only screen and (min-width: 1024px) {
