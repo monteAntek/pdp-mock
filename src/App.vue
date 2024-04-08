@@ -138,7 +138,6 @@ function toggleBottomsheet() {
   flex-direction: column;
   justify-content: flex-start;
   align-items: center;
-  padding: 50px;
   overflow: hidden;
   transition: all 0.3s;
   transform: translateY(0);
