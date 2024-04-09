@@ -31,15 +31,13 @@
           { 'bottomsheet--open': isBottomsheetOpen && !isDesktop },
         ]"
       >
-        <div class="drag-handle">
-          <div class="drag-handle-container">
-            <div
-              v-if="!isDesktop"
-              class="drag-handle-button"
-              @click.self="toggleBottomsheet"
-            />
-          </div>
-        </div>
+        <button
+          v-if="!isDesktop"
+          class="drag-handle-container"
+          @click.self="toggleBottomsheet"
+        >
+          <div class="drag-handle" />
+        </button>
         <h1>BOTTOMSHEET</h1>
       </div>
     </div>
@@ -179,20 +177,13 @@ function toggleBottomsheet() {
   }
 }
 
-.drag-handle {
-  height: 32px;
-  padding-block: 12px;
-  position: relative;
-}
-
 .drag-handle-container {
-  position: absolute;
-  width: 64px;
-  height: 32px;
-  transform: translateX(-50%);
+  all: unset;
+  width: 100%;
+  padding-block: 14px;
 }
 
-.drag-handle-button {
+.drag-handle {
   margin-left: auto;
   margin-right: auto;
   height: 2px;
