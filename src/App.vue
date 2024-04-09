@@ -74,8 +74,10 @@ watch(hasPdpReachedTop, () => {
 });
 
 function toggleBottomsheet() {
-  isBottomsheetOpen.value = !isBottomsheetOpen.value;
-  bottomsheet.value?.classList.toggle("bottomsheet--open");
+  if (!isDesktop.value) {
+    isBottomsheetOpen.value = !isBottomsheetOpen.value;
+    bottomsheet.value?.classList.toggle("bottomsheet--open");
+  }
 }
 </script>
 
