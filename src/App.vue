@@ -51,8 +51,7 @@
 
 <script setup lang="ts">
 import { ref, toRefs, watch } from "vue";
-import { useMediaQuery, useScroll } from "@vueuse/core";
-// useSwipe,
+import { useMediaQuery, useScroll, useSwipe } from "@vueuse/core";
 
 const isDesktop = useMediaQuery("(min-width: 1024px)");
 
@@ -69,8 +68,20 @@ const { bottom: hasGalleryReachedBottom } = toRefs(galleryArrivedState);
 const { y: pdpScroll, arrivedState: pdpArrivedState } = useScroll(pdp);
 const { top: hasPdpReachedTop } = toRefs(pdpArrivedState);
 
-// TODO: handle bottomsheet swiping
-// const { isSwiping, direction } = useSwipe(bottomsheet);
+const {
+  isSwiping: isBottomsheetSwiping,
+  direction: bottomsheetSwipeDirection,
+} = useSwipe(bottomsheet);
+
+watch(isBottomsheetSwiping, () => {
+  if (!isBottomsheetOpen.value && bottomsheetSwipeDirection.value === "up") {
+    toggleBottomsheet();
+  }
+
+  if (isBottomsheetOpen.value && bottomsheetSwipeDirection.value === "down") {
+    toggleBottomsheet();
+  }
+});
 
 watch(hasGalleryReachedBottom, () => {
   if (hasGalleryReachedBottom.value && !isBottomsheetOpen.value) {
