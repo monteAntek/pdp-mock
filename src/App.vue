@@ -1,7 +1,10 @@
 <template>
-  <div ref="pdp" :class="['pdp', { scroll: isBottomsheetOpen }]">
+  <div ref="pdp" :class="['pdp', { scroll: isBottomsheetOpen && !isDesktop }]">
     <div ref="productWrapper" class="product-wrapper">
-      <div ref="gallery" class="gallery">
+      <div
+        ref="gallery"
+        :class="['gallery', { hidden: isBottomsheetOpen && !isDesktop }]"
+      >
         <div class="gallery-image">
           <p>IMAGE 1</p>
         </div>
@@ -23,7 +26,10 @@
       </div>
       <div
         ref="bottomsheet"
-        :class="['bottomsheet', { 'bottomsheet--open': isBottomsheetOpen }]"
+        :class="[
+          'bottomsheet',
+          { 'bottomsheet--open': isBottomsheetOpen && !isDesktop },
+        ]"
       >
         <div class="drag-handle">
           <div class="drag-handle-container">
@@ -46,6 +52,7 @@
 <script setup lang="ts">
 import { ref, toRefs, watch } from "vue";
 import { useMediaQuery, useScroll } from "@vueuse/core";
+// useSwipe,
 
 const isDesktop = useMediaQuery("(min-width: 1024px)");
 
@@ -55,11 +62,15 @@ const gallery = ref<HTMLElement>();
 const isBottomsheetOpen = ref(false);
 const productWrapper = ref<HTMLElement>();
 
-const { arrivedState: galleryArrivedState } = useScroll(gallery);
+const { y: galleryScroll, arrivedState: galleryArrivedState } =
+  useScroll(gallery);
 const { bottom: hasGalleryReachedBottom } = toRefs(galleryArrivedState);
 
-const { arrivedState: pdpArrivedState } = useScroll(pdp);
+const { y: pdpScroll, arrivedState: pdpArrivedState } = useScroll(pdp);
 const { top: hasPdpReachedTop } = toRefs(pdpArrivedState);
+
+// TODO: handle bottomsheet swiping
+// const { isSwiping, direction } = useSwipe(bottomsheet);
 
 watch(hasGalleryReachedBottom, () => {
   if (hasGalleryReachedBottom.value && !isBottomsheetOpen.value) {
@@ -77,6 +88,8 @@ function toggleBottomsheet() {
   if (!isDesktop.value) {
     isBottomsheetOpen.value = !isBottomsheetOpen.value;
     bottomsheet.value?.classList.toggle("bottomsheet--open");
+    pdpScroll.value += 2;
+    galleryScroll.value -= 2;
   }
 }
 </script>
@@ -174,8 +187,7 @@ function toggleBottomsheet() {
   height: 2px;
   width: 50px;
   border-radius: 0.125rem;
-  --tw-bg-opacity: 1;
-  background-color: rgb(0 0 0 / var(--tw-bg-opacity));
+  background-color: rgb(0 0 0);
 }
 
 .others-wrapper {
@@ -189,5 +201,9 @@ function toggleBottomsheet() {
 
 .scroll {
   overflow-y: scroll;
+}
+
+.hidden {
+  overflow-y: hidden;
 }
 </style>
