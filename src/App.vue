@@ -1,40 +1,35 @@
 <template>
   <div ref="pdp" :class="['pdp', { scroll: isBottomsheetOpen && !isDesktop }]">
-    <div ref="productWrapper" class="product-wrapper">
+    <div class="product-wrapper">
       <div
         ref="gallery"
         :class="['gallery', { hidden: isBottomsheetOpen && !isDesktop }]"
       >
-        <div class="gallery-image">
-          <p>IMAGE 1</p>
-        </div>
-        <div class="gallery-image">
-          <p>IMAGE 2</p>
-        </div>
-        <div class="gallery-image">
-          <p>IMAGE 3</p>
-        </div>
-        <div class="gallery-image">
-          <p>IMAGE 4</p>
-        </div>
-        <div class="gallery-image">
-          <p>IMAGE 5</p>
-        </div>
-        <div class="gallery-image">
-          <p>IMAGE 6</p>
+        <div class="gallery-image" v-for="image in images" :key="image.id">
+          <p>{{ image.text }}</p>
         </div>
       </div>
       <div
         ref="bottomsheet"
         :class="[
           'bottomsheet',
-          { 'bottomsheet--open': isBottomsheetOpen && !isDesktop },
+          {
+            'bottomsheet--open': !isDesktop && isBottomsheetOpen,
+            dragging: isDragged,
+          },
         ]"
       >
         <button
+          ref="dragHandle"
           v-if="!isDesktop"
           class="drag-handle-container"
-          @click.self="toggleBottomsheet"
+          @click.prevent="toggleBottomsheet"
+          @mousedown="onDragStart"
+          @mousemove.passive="onDragMove"
+          @mouseup="onDragEnd"
+          @touchstart="onDragStart"
+          @touchmove="onDragMove"
+          @touchend="onDragEnd"
         >
           <div class="drag-handle" />
         </button>
@@ -49,15 +44,29 @@
 
 <script setup lang="ts">
 import { ref, toRefs, watch } from "vue";
-import { useMediaQuery, useScroll, useSwipe } from "@vueuse/core";
+import { useMediaQuery, useScroll } from "@vueuse/core";
 
 const isDesktop = useMediaQuery("(min-width: 1024px)");
 
 const pdp = ref<HTMLElement>();
 const bottomsheet = ref<HTMLElement>();
 const gallery = ref<HTMLElement>();
+const dragHandle = ref<HTMLElement>();
+
+const isClicked = ref(false);
+const isDragged = ref(false);
+const tapPosition = ref(0);
 const isBottomsheetOpen = ref(false);
-const productWrapper = ref<HTMLElement>();
+const dragDistance = ref(0);
+
+const images = [
+  { id: 1, text: "IMAGE 1" },
+  { id: 2, text: "IMAGE 2" },
+  { id: 3, text: "IMAGE 3" },
+  { id: 4, text: "IMAGE 4" },
+  { id: 5, text: "IMAGE 5" },
+  { id: 6, text: "IMAGE 6" },
+];
 
 const { y: galleryScroll, arrivedState: galleryArrivedState } =
   useScroll(gallery);
@@ -66,40 +75,124 @@ const { bottom: hasGalleryReachedBottom } = toRefs(galleryArrivedState);
 const { y: pdpScroll, arrivedState: pdpArrivedState } = useScroll(pdp);
 const { top: hasPdpReachedTop } = toRefs(pdpArrivedState);
 
-const {
-  isSwiping: isBottomsheetSwiping,
-  direction: bottomsheetSwipeDirection,
-} = useSwipe(bottomsheet);
-
-watch(isBottomsheetSwiping, () => {
-  if (!isBottomsheetOpen.value && bottomsheetSwipeDirection.value === "up") {
-    toggleBottomsheet();
-  }
-
-  if (isBottomsheetOpen.value && bottomsheetSwipeDirection.value === "down") {
-    toggleBottomsheet();
-  }
-});
-
 watch(hasGalleryReachedBottom, () => {
-  if (hasGalleryReachedBottom.value && !isBottomsheetOpen.value) {
+  if (
+    !isDragged.value &&
+    !isBottomsheetOpen.value &&
+    hasGalleryReachedBottom.value
+  ) {
     toggleBottomsheet();
   }
 });
 
 watch(hasPdpReachedTop, () => {
-  if (hasPdpReachedTop.value && isBottomsheetOpen.value) {
+  if (!isDragged.value && isBottomsheetOpen.value && hasPdpReachedTop.value) {
     toggleBottomsheet();
   }
 });
 
 function toggleBottomsheet() {
-  if (!isDesktop.value) {
+  if (!isDesktop.value && !isDragged.value) {
     isBottomsheetOpen.value = !isBottomsheetOpen.value;
     bottomsheet.value?.classList.toggle("bottomsheet--open");
-    pdpScroll.value += 2;
-    galleryScroll.value -= 2;
+
+    pdpScroll.value = Math.max(0, pdpScroll.value + 1);
+    galleryScroll.value = Math.max(0, galleryScroll.value - 1);
   }
+}
+
+function isHandledByTouch() {
+  return "ontouchstart" in document.documentElement;
+}
+
+function checkIfIsDragging(
+  initialPosition: number,
+  newPosition: number
+): boolean {
+  const distance = Math.abs(newPosition - initialPosition);
+
+  return distance >= 10;
+}
+
+function getDragPositionY(event: MouseEvent | TouchEvent): { y: number } {
+  let y = 0;
+
+  if (isHandledByTouch()) {
+    y = (event as TouchEvent)?.changedTouches?.[0]?.clientY;
+  } else {
+    y = (event as MouseEvent)?.clientY;
+  }
+
+  return { y };
+}
+
+function onDragStart(event: MouseEvent | TouchEvent) {
+  if (isHandledByTouch()) {
+    isClicked.value = true;
+    isDragged.value = false;
+
+    tapPosition.value = getDragPositionY(event).y;
+    console.log("tap position on drag start", tapPosition.value);
+  } else {
+    const mouseButton = (event as MouseEvent).button;
+
+    if (mouseButton === 0) {
+      isClicked.value = true;
+      isDragged.value = false;
+    }
+  }
+}
+
+function onDragMove(event: MouseEvent | TouchEvent) {
+  if (isClicked.value) {
+    const newPosition = getDragPositionY(event).y;
+
+    console.log("tap position on drag move", tapPosition.value);
+    console.log("new position on drag move", newPosition);
+
+    if (checkIfIsDragging(tapPosition.value, newPosition)) {
+      isDragged.value = true;
+      const realDragDistance = tapPosition.value - newPosition;
+      dragDistance.value = Math.abs(tapPosition.value - newPosition);
+      console.log("drag distance", dragDistance.value);
+      console.log("real drag distance", realDragDistance);
+
+      const translateValue = dragDistance.value * -1;
+      console.log("translate value", translateValue);
+      document.body.style.setProperty(
+        "--handleDragDistanceY",
+        `${translateValue}px`
+      );
+
+      if (
+        bottomsheet.value &&
+        dragDistance.value >
+          bottomsheet.value?.getBoundingClientRect().height * 0.25 &&
+        realDragDistance > 0
+      ) {
+        isBottomsheetOpen.value = true;
+      } else if (
+        bottomsheet.value &&
+        dragDistance.value >
+          bottomsheet.value?.getBoundingClientRect().height * 0.25 &&
+        realDragDistance < 0
+      ) {
+        isBottomsheetOpen.value = false;
+      }
+    }
+  }
+
+  if (!isDragged.value) {
+    return;
+  }
+}
+
+function onDragEnd() {
+  console.log("tap position on drag end", tapPosition.value);
+
+  isClicked.value = false;
+  isDragged.value = false;
+  tapPosition.value = 0;
 }
 </script>
 
@@ -163,8 +256,8 @@ function toggleBottomsheet() {
   justify-content: flex-start;
   align-items: center;
   overflow: hidden;
-  transition: all 0.3s;
   transform: translateY(0);
+  transition: all 0.3s;
 
   @media only screen and (min-width: 1024px) {
     width: 50%;
@@ -207,5 +300,9 @@ function toggleBottomsheet() {
 
 .hidden {
   overflow-y: hidden;
+}
+
+.dragging {
+  transform: translateY(var(--handleDragDistanceY));
 }
 </style>
